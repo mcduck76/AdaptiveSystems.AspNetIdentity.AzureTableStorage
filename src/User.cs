@@ -3,7 +3,7 @@ using System.Linq;
 using Microsoft.AspNet.Identity;
 using Microsoft.WindowsAzure.Storage.Table;
 
-namespace AdaptiveSoftware.AspNetIdentity.AzureTableStorage
+namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
     public class User : TableEntity, IUser
     {

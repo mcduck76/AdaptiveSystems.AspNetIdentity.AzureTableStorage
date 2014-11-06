@@ -1,16 +1,14 @@
-﻿using Microsoft.AspNet.Identity;
+﻿using System;
+using System.Configuration;
+using System.Linq;
+using System.Threading.Tasks;
+using AdaptiveSystems.AspNetIdentity.AzureTableStorage.Exceptions;
+using Microsoft.AspNet.Identity;
 using Microsoft.WindowsAzure.Storage;
 using Microsoft.WindowsAzure.Storage.Table;
-using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
 using NExtensions;
-using AdaptiveSoftware.AspNetIdentity.AzureTableStorage.Exceptions;
-using System.Configuration;
 
-namespace AdaptiveSoftware.AspNetIdentity.AzureTableStorage
+namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
     public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IDisposable where T : User, new()
     {

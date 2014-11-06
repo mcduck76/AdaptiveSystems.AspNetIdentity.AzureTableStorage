@@ -7,8 +7,8 @@
     <ProjectGuid>{911E9A01-9D81-4A8D-8CAC-BC2A0F9F0B4B}</ProjectGuid>
     <OutputType>Library</OutputType>
     <AppDesignerFolder>Properties</AppDesignerFolder>
-    <RootNamespace>AdaptiveSoftware.AspNetIdentity.AzureTableStorage</RootNamespace>
-    <AssemblyName>AdaptiveSoftware.AspNetIdentity.AzureTableStorage</AssemblyName>
+    <RootNamespace>AdaptiveSystems.AspNetIdentity.AzureTableStorage</RootNamespace>
+    <AssemblyName>AdaptiveSystems.AspNetIdentity.AzureTableStorage</AssemblyName>
     <TargetFrameworkVersion>v4.5</TargetFrameworkVersion>
     <FileAlignment>512</FileAlignment>
   </PropertyGroup>
