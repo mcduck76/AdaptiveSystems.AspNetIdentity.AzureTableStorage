@@ -82,6 +82,7 @@
     <Compile Include="UserStore.cs" />
   </ItemGroup>
   <ItemGroup>
+    <None Include="AdaptiveSystems.AspNetIdentity.AzureTableStorage.nuspec" />
     <None Include="app.config" />
     <None Include="packages.config" />
   </ItemGroup>
