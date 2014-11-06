@@ -4,8 +4,8 @@
     <id>$id$</id>
     <version>$version$</version>
     <title>$title$</title>
-    <authors>$author$</authors>
-    <owners>$author$</owners>
+    <authors>Adaptive Systems</authors>
+    <owners>Adaptive Systems</owners>
     <projectUrl>https://github.com/halcharger/AdaptiveSystems.AspNetIdentity.AzureTableStorage</projectUrl>
 	  <iconUrl>https://raw.githubusercontent.com/halcharger/AdaptiveSystems.AspNetIdentity.AzureTableStorage/master/AdaptiveSystems.AspNetIdentity.AzureTableStorage/AzureTableStorage.png</iconUrl>
     <requireLicenseAcceptance>false</requireLicenseAcceptance>
