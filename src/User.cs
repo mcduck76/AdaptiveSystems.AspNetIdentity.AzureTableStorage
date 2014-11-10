@@ -50,9 +50,9 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             var existingLogin =
                 logins.FirstOrDefault(l => l.LoginProvider == login.LoginProvider && l.ProviderKey == login.ProviderKey);
 
-            if (existingLogin == null) return;
+            if (existingLogin != null) return;
 
-            logins.Add(existingLogin);
+            logins.Add(login);
             SetExternalLogins(logins);
         }
 
