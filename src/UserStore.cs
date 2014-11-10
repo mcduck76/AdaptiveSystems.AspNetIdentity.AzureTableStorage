@@ -268,7 +268,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
-            user.ExternalLogins.Add(login);
+            user.AddExternalLogin(login);
             return Task.FromResult(0);
         }
 
@@ -277,11 +277,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
-            var existingExternalLogin =
-                user.ExternalLogins.SingleOrDefault(
-                    el => el.LoginProvider == login.LoginProvider && el.ProviderKey == login.ProviderKey);
-            
-            user.ExternalLogins.Remove(existingExternalLogin);
+            user.RemoveExternalLogin(login);
             return Task.FromResult(0);
         }
 
@@ -289,7 +285,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             user.ThrowIfNull("user");
 
-            return Task.FromResult(user.ExternalLogins);
+            return Task.FromResult((IList<UserLoginInfo>)user.GetExternalLogins());
         }
 
         public async Task<T> FindAsync(UserLoginInfo login)

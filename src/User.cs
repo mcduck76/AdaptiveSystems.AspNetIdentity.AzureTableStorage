@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Identity;
 using Microsoft.WindowsAzure.Storage.Table;
+using Newtonsoft.Json;
+using NExtensions;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
@@ -11,7 +13,6 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public User()
         {
             Id = Guid.NewGuid().ToString();
-            ExternalLogins = new List<UserLoginInfo>();
         }
         public User(string username) : this()
         {
@@ -28,7 +29,44 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public DateTime? LockoutEndDate { get; set; }
         public int AccessFailedCount { get; set; }
         public bool LockoutEnabled { get; set; }
-        public IList<UserLoginInfo> ExternalLogins { get; set; }
+        public string ExternalLoginsJson { get; set; }
+
+        public List<UserLoginInfo> GetExternalLogins()
+        {
+            return ExternalLoginsJson.HasValue() 
+                ? JsonConvert.DeserializeObject<List<UserLoginInfo>>(ExternalLoginsJson) 
+                : new List<UserLoginInfo>();
+        }
+
+        private void SetExternalLogins(List<UserLoginInfo> logins)
+        {
+            ExternalLoginsJson = JsonConvert.SerializeObject(logins);
+        }
+
+        public void AddExternalLogin(UserLoginInfo login)
+        {
+            var logins = GetExternalLogins();
+
+            var existingLogin =
+                logins.FirstOrDefault(l => l.LoginProvider == login.LoginProvider && l.ProviderKey == login.ProviderKey);
+
+            if (existingLogin == null) return;
+
+            logins.Add(existingLogin);
+            SetExternalLogins(logins);
+        }
+
+        public void RemoveExternalLogin(UserLoginInfo login)
+        {
+            var logins = GetExternalLogins();
+
+            var existingLogin =
+                logins.FirstOrDefault(l => l.LoginProvider == login.LoginProvider && l.ProviderKey == login.ProviderKey);
+
+            logins.Remove(existingLogin);
+
+            SetExternalLogins(logins);
+        }
 
         public bool IsUserInRole(string role)
         {
