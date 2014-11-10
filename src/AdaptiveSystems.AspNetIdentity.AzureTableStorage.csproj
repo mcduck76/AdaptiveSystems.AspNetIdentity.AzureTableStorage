@@ -73,11 +73,13 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
-    <Compile Include="EmailIndex.cs" />
+    <Compile Include="IdentityTables.cs" />
+    <Compile Include="UserEmailIndex.cs" />
     <Compile Include="Exceptions\DuplicateEmailException.cs" />
     <Compile Include="Exceptions\DuplicateUsernameException.cs" />
     <Compile Include="User.cs" />
     <Compile Include="Properties\AssemblyInfo.cs" />
+    <Compile Include="UserExternalLoginIndex.cs" />
     <Compile Include="UserNameIndex.cs" />
     <Compile Include="UserStore.cs" />
   </ItemGroup>

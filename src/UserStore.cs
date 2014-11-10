@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Configuration;
 using System.Linq;
 using System.Threading.Tasks;
@@ -10,29 +11,17 @@ using NExtensions;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
-    public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IDisposable where T : User, new()
+    public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IUserLoginStore<T>, IDisposable 
+                        where T : User, new()
     {
-        private readonly CloudTable usersTable;
-        private readonly CloudTable userNamesIndexTable;
-        private readonly CloudTable emailIndexTable;
+        private readonly IdentityTables identityTables;
 
         public UserStore(string connectionString) : this(CloudStorageAccount.Parse(connectionString)) { }
         public UserStore(CloudStorageAccount storageAccount) : this(storageAccount, true) { }
-        public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists) : this(storageAccount, createIfNotExists, "users", "userNamesIndex", "emailIndex") { }
-        public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists, string usersTableName, string userNamesIndexTableName, string emailIndexTableName)
+        public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists) : this(storageAccount, createIfNotExists, "users", "userNamesIndex", "userEmailsIndex", "userExternalLoginsIndex") { }
+        public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists, string usersTableName, string userNamesIndexTableName, string userEmailsIndexTableName, string userExternalLoginsIndexTableName)
         {
-            CloudTableClient tableClient = storageAccount.CreateCloudTableClient();
-
-            usersTable = tableClient.GetTableReference(usersTableName);
-            userNamesIndexTable = tableClient.GetTableReference(userNamesIndexTableName);
-            emailIndexTable = tableClient.GetTableReference(emailIndexTableName);
-
-            if (createIfNotExists)
-            {
-                usersTable.CreateIfNotExists();
-                userNamesIndexTable.CreateIfNotExists();
-                emailIndexTable.CreateIfNotExists();
-            }
+            identityTables = new IdentityTables(storageAccount, createIfNotExists, usersTableName, userNamesIndexTableName, userEmailsIndexTableName, userExternalLoginsIndexTableName);
         }
 
         public static UserStore<T> Create()
@@ -43,11 +32,10 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         private async Task CreateUserNameIndex(T user)
         {
             var userNameIndex = new UserNameIndex(user.UserName.Base64Encode(), user.Id);
-            var insertUserNameIndexOperation = TableOperation.Insert(userNameIndex);
 
             try
             {
-                await userNamesIndexTable.ExecuteAsync(insertUserNameIndexOperation);
+                await identityTables.InsertUserNamesIndexTableEntity(userNameIndex);
             }
             catch (StorageException ex)
             {
@@ -61,12 +49,11 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
         private async Task CreateEmailIndex(T user)
         {
-            var emailIndex = new EmailIndex(user.Email.Base64Encode(), user.Id);
-            var insertEmailIndexIOperation = TableOperation.Insert(emailIndex);
+            var emailIndex = new UserEmailIndex(user.Email.Base64Encode(), user.Id);
 
             try
             {
-                await emailIndexTable.ExecuteAsync(insertEmailIndexIOperation);
+                await identityTables.InsertUserEmailsIndexTableEntity(emailIndex);
             }
             catch (StorageException ex)
             {
@@ -88,8 +75,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             try
             {
-                var insertOrReplaceUserOperation = TableOperation.InsertOrReplace(user);
-                await usersTable.ExecuteAsync(insertOrReplaceUserOperation);
+                await identityTables.InsertOrReplaceUserTableEntity(user);
             }
             catch (Exception)
             {
@@ -103,57 +89,46 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             user.ThrowIfNull("user");
 
-            var operation = TableOperation.Delete(user);
-            user.ETag = "*";
-            await usersTable.ExecuteAsync(operation);
+            await identityTables.DeleteUserTableEntity(user);
 
             await RemoveIndices(user);
         }
 
-        public Task<T> FindByIdAsync(string userId)
+        public async Task<T> FindByIdAsync(string userId) 
         {
             userId.ThrowIfNullOrEmpty("userId");
 
-            return Task.Factory.StartNew(() =>
-            {
-                var query = new TableQuery<T>()
-                            .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId))
-                            .Take(1);
-                var results = usersTable.ExecuteQuery(query);
-                return results.SingleOrDefault();
-            });
+            var query = new TableQuery<T>()
+                        .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId))
+                        .Take(1);
+            var results = await identityTables.ExecuteQueryOnUser(query);
+            return results.SingleOrDefault();
         }
 
-        public Task<T> FindByNameAsync(string userName)
+        public async Task<T> FindByNameAsync(string userName)
         {
             userName.ThrowIfNullOrEmpty("userName");
 
-            return Task.Factory.StartNew(() =>
+            var indexQuery = new TableQuery<UserNameIndex>()
+                            .Where(TableQuery.GenerateFilterCondition("PartitionKey", 
+                                    QueryComparisons.Equal, userName.Base64Encode()))
+                            .Take(1);
+            var indexResults = await identityTables.ExecuteQueryOnUserNamesIndex(indexQuery);
+            var indexItem = indexResults.SingleOrDefault();
+
+            if (indexItem == null)
             {
-                var indexQuery = new TableQuery<UserNameIndex>()
-                                .Where(TableQuery.GenerateFilterCondition("PartitionKey", 
-                                        QueryComparisons.Equal, userName.Base64Encode()))
-                                .Take(1);
-                var indexResults = userNamesIndexTable.ExecuteQuery(indexQuery);
-                var indexItem = indexResults.SingleOrDefault();
+                return null;
+            }
 
-                if (indexItem == null)
-                {
-                    return null;
-                }
-
-                return FindByIdAsync(indexItem.UserId).Result;
-            });
+            return FindByIdAsync(indexItem.UserId).Result;
         }
 
         public async Task UpdateAsync(T user)
         {
             user.ThrowIfNull("user");
 
-            // assumption here is that a username can't change (if it did we'd need to fix the index)
-            user.ETag = "*";
-            TableOperation operation = TableOperation.Replace(user);
-            await usersTable.ExecuteAsync(operation);
+            await identityTables.UpdateUserTableEntity(user);
         }
 
         public void Dispose()
@@ -184,27 +159,18 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return Task.FromResult(0);
         }
 
-        public Task<T> FindByEmailAsync(string email)
+        public async Task<T> FindByEmailAsync(string email)
         {
             email.ThrowIfNullOrEmpty("email");
 
-            return Task.Factory.StartNew(() =>
-            {
-                var indexQuery = new TableQuery<EmailIndex>()
-                                .Where(TableQuery.GenerateFilterCondition("PartitionKey",
-                                        QueryComparisons.Equal, email.Base64Encode()))
-                                .Take(1);
-                var indexResults = emailIndexTable.ExecuteQuery(indexQuery);
-                var indexItem = indexResults.SingleOrDefault();
+            var indexQuery = new TableQuery<UserEmailIndex>()
+                            .Where(TableQuery.GenerateFilterCondition("PartitionKey",
+                                    QueryComparisons.Equal, email.Base64Encode()))
+                            .Take(1);
+            var indexResults = await identityTables.ExecuteQueryOnUserEmailsIndex(indexQuery);
+            var indexItem = indexResults.SingleOrDefault();
 
-                if (indexItem == null)
-                {
-                    return null;
-                }
-
-                return FindByIdAsync(indexItem.UserId).Result;
-            });
-
+            return indexItem == null ? null : FindByIdAsync(indexItem.UserId).Result;
         }
 
         public Task<string> GetEmailAsync(T user)
@@ -241,13 +207,11 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         private async Task RemoveIndices(T user)
         {
             var userNameIndex = new UserNameIndex(user.UserName.Base64Encode(), user.Id);
-            userNameIndex.ETag = "*";
 
-            var emailIndex = new EmailIndex(user.Email.Base64Encode(), user.Id);
-            emailIndex.ETag = "*";
-            
-            var t1 = userNamesIndexTable.ExecuteAsync(TableOperation.Delete(userNameIndex));
-            var t2 = emailIndexTable.ExecuteAsync(TableOperation.Delete(emailIndex));
+            var emailIndex = new UserEmailIndex(user.Email.Base64Encode(), user.Id);
+
+            var t1 = identityTables.DeleteUserNamesIndexTableEntity(userNameIndex);
+            var t2 = identityTables.DeleteUserEmailsIndexTableEntity(emailIndex);
 
             await Task.WhenAll(t1, t2);
         }
@@ -297,6 +261,50 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             user.LockoutEndDate = lockoutEnd.UtcDateTime;
             return Task.FromResult(0);
+        }
+
+        public Task AddLoginAsync(T user, UserLoginInfo login)
+        {
+            user.ThrowIfNull("user");
+            login.ThrowIfNull("login");
+
+            user.ExternalLogins.Add(login);
+            return Task.FromResult(0);
+        }
+
+        public Task RemoveLoginAsync(T user, UserLoginInfo login)
+        {
+            user.ThrowIfNull("user");
+            login.ThrowIfNull("login");
+
+            var existingExternalLogin =
+                user.ExternalLogins.SingleOrDefault(
+                    el => el.LoginProvider == login.LoginProvider && el.ProviderKey == login.ProviderKey);
+            
+            user.ExternalLogins.Remove(existingExternalLogin);
+            return Task.FromResult(0);
+        }
+
+        public Task<IList<UserLoginInfo>> GetLoginsAsync(T user)
+        {
+            user.ThrowIfNull("user");
+
+            return Task.FromResult(user.ExternalLogins);
+        }
+
+        public async Task<T> FindAsync(UserLoginInfo login)
+        {
+            login.ThrowIfNull("login");
+
+            var indexItem = new UserExternalLoginIndex(login);
+            var indexQuery = new TableQuery<UserExternalLoginIndex>()
+                            .Where(TableQuery.GenerateFilterCondition("PartitionKey",
+                                    QueryComparisons.Equal, indexItem.PartitionKey))
+                            .Take(1);
+            var indexResults = await identityTables.ExecuteQueryOnUserExternalLoginsIndex(indexQuery);
+            var index = indexResults.SingleOrDefault();
+
+            return index == null ? null : FindByIdAsync(index.UserId).Result;
         }
     }
 }

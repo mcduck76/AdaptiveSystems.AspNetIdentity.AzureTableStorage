@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Linq;
 using Microsoft.AspNet.Identity;
 using Microsoft.WindowsAzure.Storage.Table;
@@ -10,6 +11,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public User()
         {
             Id = Guid.NewGuid().ToString();
+            ExternalLogins = new List<UserLoginInfo>();
         }
         public User(string username) : this()
         {
@@ -26,6 +28,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public DateTime? LockoutEndDate { get; set; }
         public int AccessFailedCount { get; set; }
         public bool LockoutEnabled { get; set; }
+        public IList<UserLoginInfo> ExternalLogins { get; set; }
 
         public bool IsUserInRole(string role)
         {

@@ -2,10 +2,10 @@
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
-    public class EmailIndex : TableEntity
+    public class UserEmailIndex : TableEntity
     {
-        public EmailIndex() { }
-        public EmailIndex(string base64Email, string userId)
+        public UserEmailIndex() { }
+        public UserEmailIndex(string base64Email, string userId)
         {
             PartitionKey = base64Email;
             RowKey = base64Email;
