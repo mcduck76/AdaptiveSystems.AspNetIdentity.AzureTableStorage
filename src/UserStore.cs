@@ -263,22 +263,24 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return Task.FromResult(0);
         }
 
-        public Task AddLoginAsync(T user, UserLoginInfo login)
+        public async Task AddLoginAsync(T user, UserLoginInfo login)
         {
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
             user.AddExternalLogin(login);
-            return Task.FromResult(0);
+            await UpdateAsync(user);
+            await CreateExternalLoginIndex(user, login);
         }
 
-        public Task RemoveLoginAsync(T user, UserLoginInfo login)
+        public async Task RemoveLoginAsync(T user, UserLoginInfo login)
         {
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
             user.RemoveExternalLogin(login);
-            return Task.FromResult(0);
+            await UpdateAsync(user);
+            await identityTables.DeleteUserExternalLoginIndexTableEntity(new UserExternalLoginIndex(login));
         }
 
         public Task<IList<UserLoginInfo>> GetLoginsAsync(T user)
@@ -293,14 +295,30 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             login.ThrowIfNull("login");
 
             var indexItem = new UserExternalLoginIndex(login);
-            var indexQuery = new TableQuery<UserExternalLoginIndex>()
-                            .Where(TableQuery.GenerateFilterCondition("PartitionKey",
-                                    QueryComparisons.Equal, indexItem.PartitionKey))
-                            .Take(1);
-            var indexResults = await identityTables.ExecuteQueryOnUserExternalLoginsIndex(indexQuery);
-            var index = indexResults.SingleOrDefault();
+            var index = await identityTables.RetrieveUserExternalLoginIndexAsync(indexItem);
 
-            return index == null ? null : FindByIdAsync(index.UserId).Result;
+            return index == null 
+                ? null 
+                : await FindByIdAsync(index.UserId);
         }
+
+        private async Task CreateExternalLoginIndex(T user, UserLoginInfo login)
+        {
+            var loginIndex = new UserExternalLoginIndex(login, user.Id);
+
+            try
+            {
+                await identityTables.InsertUserExternalLoginIndexTableEntity(loginIndex);
+            }
+            catch (StorageException ex)
+            {
+                if (ex.RequestInformation.HttpStatusCode == 409)
+                {
+                    throw new DuplicateExternalLoginException();
+                }
+                throw;
+            }
+        }
+
     }
 }

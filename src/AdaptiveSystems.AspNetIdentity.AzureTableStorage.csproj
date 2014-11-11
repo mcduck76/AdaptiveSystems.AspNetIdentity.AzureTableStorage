@@ -73,6 +73,7 @@
     <Reference Include="System.Xml" />
   </ItemGroup>
   <ItemGroup>
+    <Compile Include="Exceptions\DuplicateExternalLoginException.cs" />
     <Compile Include="IdentityTables.cs" />
     <Compile Include="UserEmailIndex.cs" />
     <Compile Include="Exceptions\DuplicateEmailException.cs" />

@@ -40,6 +40,11 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return Insert(userEmailsIndexTable, entity);
         }
 
+        public Task<TableResult> InsertUserExternalLoginIndexTableEntity(UserExternalLoginIndex entity)
+        {
+            return Insert(userExternalLoginsIndexTable, entity);
+        }
+
         public Task<TableResult> InsertOrReplaceUserTableEntity(User entity)
         {
             return InsertOrReplace(usersTable, entity);
@@ -58,6 +63,11 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public Task<TableResult> DeleteUserEmailsIndexTableEntity(UserEmailIndex entity)
         {
             return Delete(userEmailsIndexTable, entity);
+        }
+
+        public Task<TableResult> DeleteUserExternalLoginIndexTableEntity(UserExternalLoginIndex entity)
+        {
+            return Delete(userExternalLoginsIndexTable, entity);
         }
 
         public Task<TableResult> UpdateUserTableEntity(User entity)
@@ -83,6 +93,13 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public Task<IEnumerable<UserExternalLoginIndex>> ExecuteQueryOnUserExternalLoginsIndex(TableQuery<UserExternalLoginIndex> query)
         {
             return Task.Factory.StartNew(() => userExternalLoginsIndexTable.ExecuteQuery(query));
+        }
+
+        public async Task<UserExternalLoginIndex> RetrieveUserExternalLoginIndexAsync(UserExternalLoginIndex entity)
+        {
+            var retrieveOperation = TableOperation.Retrieve<UserExternalLoginIndex>(entity.PartitionKey, entity.RowKey);
+            var result = await userExternalLoginsIndexTable.ExecuteAsync(retrieveOperation);
+            return (UserExternalLoginIndex)result.Result;
         }
 
         private Task<TableResult> Insert(CloudTable table, ITableEntity entity)

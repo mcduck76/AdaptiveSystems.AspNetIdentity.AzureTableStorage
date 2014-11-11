@@ -14,10 +14,6 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             Id = Guid.NewGuid().ToString();
         }
-        public User(string username) : this()
-        {
-            UserName = username;
-        }
 
         public string Id { get; set; }
         public string UserName {get; set;}
