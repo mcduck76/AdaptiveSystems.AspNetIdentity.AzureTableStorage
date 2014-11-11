@@ -75,11 +75,6 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return ReplaceAsync(usersTable, entity);
         }
 
-        public Task<IEnumerable<T>> ExecuteQueryOnUser<T>(TableQuery<T> query) where T : User, new()
-        {
-            return Task.Factory.StartNew(() => usersTable.ExecuteQuery(query));
-        }
-
         public async Task<UserEmailIndex> RetrieveUserEmailsIndexAsync(UserEmailIndex entity)
         {
             return await RetrieveAsync(userEmailsIndexTable, entity);
@@ -95,9 +90,19 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return await RetrieveAsync(userExternalLoginsIndexTable, entity);
         }
 
+        public async Task<User> RetrieveUserAsync(string userId)
+        {
+            return await RetrieveAsync<User>(usersTable, userId, userId);
+        }
+
         private async Task<T> RetrieveAsync<T>(CloudTable table, T entity) where T : ITableEntity
         {
-            var retrieveOperation = TableOperation.Retrieve<T>(entity.PartitionKey, entity.RowKey);
+            return await RetrieveAsync<T>(table, entity.PartitionKey, entity.RowKey);
+        }
+
+        private async Task<T> RetrieveAsync<T>(CloudTable table, string partitionKey, string rowKey) where T : ITableEntity
+        {
+            var retrieveOperation = TableOperation.Retrieve<T>(partitionKey, rowKey);
             var result = await table.ExecuteAsync(retrieveOperation);
             return (T)result.Result;
         }

@@ -1,12 +1,11 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
-using System.Linq;
 using System.Threading.Tasks;
 using AdaptiveSystems.AspNetIdentity.AzureTableStorage.Exceptions;
+using log4net;
 using Microsoft.AspNet.Identity;
 using Microsoft.WindowsAzure.Storage;
-using Microsoft.WindowsAzure.Storage.Table;
 using NExtensions;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
@@ -14,6 +13,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
     public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IUserLoginStore<T>, IDisposable 
                         where T : User, new()
     {
+        private readonly ILog log = LogManager.GetLogger(typeof(UserStore<>));
         private readonly IdentityTables identityTables;
 
         public UserStore(string connectionString) : this(CloudStorageAccount.Parse(connectionString)) { }
@@ -35,6 +35,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             try
             {
+                log.DebugFormat("Creating username index for {0}", user);
                 await identityTables.InsertUserNamesIndexTableEntity(userNameIndex);
             }
             catch (StorageException ex)
@@ -43,6 +44,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
                 {
                     throw new DuplicateUsernameException();
                 }
+                log.Error(ex.Message, ex);
                 throw;
             }
         }
@@ -53,6 +55,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             try
             {
+                log.DebugFormat("Creating email index for {0}", user);
                 await identityTables.InsertUserEmailsIndexTableEntity(emailIndex);
             }
             catch (StorageException ex)
@@ -61,6 +64,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
                 {
                     throw new DuplicateEmailException();
                 }
+                log.Error(ex.Message, ex);
                 throw;
             }
         }
@@ -75,10 +79,12 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             try
             {
+                log.DebugFormat("Creating user {0}", user);
                 await identityTables.InsertOrReplaceUserTableEntity(user);
             }
-            catch (Exception)
+            catch (Exception ex)
             {
+                log.Error(ex.Message, ex);
                 // attempt to delete the index item - needs work
                 RemoveIndices(user).Wait();//cannt await in the catch of a try block so have to wait
                 throw;
@@ -94,21 +100,20 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             await RemoveIndices(user);
         }
 
-        public async Task<T> FindByIdAsync(string userId) 
+        public async Task<T> FindByIdAsync(string userId)
         {
             userId.ThrowIfNullOrEmpty("userId");
 
-            var query = new TableQuery<T>()
-                        .Where(TableQuery.GenerateFilterCondition("PartitionKey", QueryComparisons.Equal, userId))
-                        .Take(1);
-            var results = await identityTables.ExecuteQueryOnUser(query);
-            return results.SingleOrDefault();
+            log.DebugFormat("Finding user by userId: {0}", userId);
+            var result = await identityTables.RetrieveUserAsync(userId);
+            return (T) result;
         }
 
         public async Task<T> FindByNameAsync(string userName)
         {
             userName.ThrowIfNullOrEmpty("userName");
 
+            log.DebugFormat("Finding user by username: {0}", userName);
             var indexItem = await identityTables.RetrieveUserNamesIndexAsync(new UserNameIndex(userName));
 
             if (indexItem == null)
@@ -123,6 +128,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             user.ThrowIfNull("user");
 
+            log.DebugFormat("Updating user: {0}", user);
             await identityTables.UpdateUserTableEntity(user);
         }
 
@@ -158,6 +164,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             email.ThrowIfNullOrEmpty("email");
 
+            log.DebugFormat("Finding user by email: {0}", email);
             var indexItem = await identityTables.RetrieveUserEmailsIndexAsync(new UserEmailIndex(email));
 
             if (indexItem == null)
@@ -263,6 +270,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
+            log.DebugFormat("Adding external login: {0}, {1}", login.LoginProvider, login.ProviderKey);
             user.AddExternalLogin(login);
             await UpdateAsync(user);
             await CreateExternalLoginIndex(user, login);
@@ -273,6 +281,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             user.ThrowIfNull("user");
             login.ThrowIfNull("login");
 
+            log.DebugFormat("Removing external login: {0}, {1}", login.LoginProvider, login.ProviderKey);
             user.RemoveExternalLogin(login);
             await UpdateAsync(user);
             await identityTables.DeleteUserExternalLoginIndexTableEntity(new UserExternalLoginIndex(login));
@@ -289,9 +298,11 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             login.ThrowIfNull("login");
 
+            log.DebugFormat("Finding user by external login: {0}, {1}", login.LoginProvider, login.ProviderKey);
             var indexItem = new UserExternalLoginIndex(login);
             var index = await identityTables.RetrieveUserExternalLoginIndexAsync(indexItem);
 
+            log.DebugFormat("REsult of finding user by external login: {0}", index);
             return index == null 
                 ? null 
                 : await FindByIdAsync(index.UserId);
@@ -303,6 +314,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
             try
             {
+                log.DebugFormat("Creating external login index for user: {0} [{1}, {2}]", user, login.LoginProvider, login.ProviderKey);
                 await identityTables.InsertUserExternalLoginIndexTableEntity(loginIndex);
             }
             catch (StorageException ex)
@@ -311,6 +323,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
                 {
                     throw new DuplicateExternalLoginException();
                 }
+                log.Error(ex.Message, ex);
                 throw;
             }
         }
