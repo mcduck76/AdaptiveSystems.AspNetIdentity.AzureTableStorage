@@ -1,14 +1,16 @@
 ﻿using Microsoft.WindowsAzure.Storage.Table;
+using NExtensions;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
     public class UserNameIndex : TableEntity
     {
         public UserNameIndex() { }
-        public UserNameIndex(string base64UserName, string userId)
+        public UserNameIndex(string userName) : this(userName, string.Empty) { }
+        public UserNameIndex(string userName, string userId)
         {
-            PartitionKey = base64UserName;
-            RowKey = base64UserName;
+            PartitionKey = userName.Base64Encode();
+            RowKey = PartitionKey;
             UserId = userId;
         }
 

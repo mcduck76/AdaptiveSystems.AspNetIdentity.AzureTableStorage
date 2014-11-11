@@ -109,19 +109,14 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             userName.ThrowIfNullOrEmpty("userName");
 
-            var indexQuery = new TableQuery<UserNameIndex>()
-                            .Where(TableQuery.GenerateFilterCondition("PartitionKey", 
-                                    QueryComparisons.Equal, userName.Base64Encode()))
-                            .Take(1);
-            var indexResults = await identityTables.ExecuteQueryOnUserNamesIndex(indexQuery);
-            var indexItem = indexResults.SingleOrDefault();
+            var indexItem = await identityTables.RetrieveUserNamesIndexAsync(new UserNameIndex(userName));
 
             if (indexItem == null)
             {
                 return null;
             }
 
-            return FindByIdAsync(indexItem.UserId).Result;
+            return await FindByIdAsync(indexItem.UserId);
         }
 
         public async Task UpdateAsync(T user)
@@ -163,14 +158,14 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             email.ThrowIfNullOrEmpty("email");
 
-            var indexQuery = new TableQuery<UserEmailIndex>()
-                            .Where(TableQuery.GenerateFilterCondition("PartitionKey",
-                                    QueryComparisons.Equal, email.Base64Encode()))
-                            .Take(1);
-            var indexResults = await identityTables.ExecuteQueryOnUserEmailsIndex(indexQuery);
-            var indexItem = indexResults.SingleOrDefault();
+            var indexItem = await identityTables.RetrieveUserEmailsIndexAsync(new UserEmailIndex(email));
 
-            return indexItem == null ? null : FindByIdAsync(indexItem.UserId).Result;
+            if (indexItem == null)
+            {
+                return null;
+            }
+
+            return await FindByIdAsync(indexItem.UserId);
         }
 
         public Task<string> GetEmailAsync(T user)

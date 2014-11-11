@@ -32,52 +32,47 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
         public Task<TableResult> InsertUserNamesIndexTableEntity(UserNameIndex entity)
         {
-            return Insert(userNamesIndexTable, entity);
+            return InsertAsync(userNamesIndexTable, entity);
         }
 
         public Task<TableResult> InsertUserEmailsIndexTableEntity(UserEmailIndex entity)
         {
-            return Insert(userEmailsIndexTable, entity);
+            return InsertAsync(userEmailsIndexTable, entity);
         }
 
         public Task<TableResult> InsertUserExternalLoginIndexTableEntity(UserExternalLoginIndex entity)
         {
-            return Insert(userExternalLoginsIndexTable, entity);
+            return InsertAsync(userExternalLoginsIndexTable, entity);
         }
 
         public Task<TableResult> InsertOrReplaceUserTableEntity(User entity)
         {
-            return InsertOrReplace(usersTable, entity);
+            return InsertOrReplaceAsync(usersTable, entity);
         }
 
         public Task<TableResult> DeleteUserTableEntity(User entity)
         {
-            return Delete(usersTable, entity);
+            return DeleteAsync(usersTable, entity);
         }
 
         public Task<TableResult> DeleteUserNamesIndexTableEntity(UserNameIndex entity)
         {
-            return Delete(userNamesIndexTable, entity);
+            return DeleteAsync(userNamesIndexTable, entity);
         }
 
         public Task<TableResult> DeleteUserEmailsIndexTableEntity(UserEmailIndex entity)
         {
-            return Delete(userEmailsIndexTable, entity);
+            return DeleteAsync(userEmailsIndexTable, entity);
         }
 
         public Task<TableResult> DeleteUserExternalLoginIndexTableEntity(UserExternalLoginIndex entity)
         {
-            return Delete(userExternalLoginsIndexTable, entity);
+            return DeleteAsync(userExternalLoginsIndexTable, entity);
         }
 
         public Task<TableResult> UpdateUserTableEntity(User entity)
         {
-            return Replace(usersTable, entity);
-        }
-
-        public Task<IEnumerable<UserEmailIndex>> ExecuteQueryOnUserEmailsIndex(TableQuery<UserEmailIndex> query)
-        {
-            return Task.Factory.StartNew(() => userEmailsIndexTable.ExecuteQuery(query));
+            return ReplaceAsync(usersTable, entity);
         }
 
         public Task<IEnumerable<T>> ExecuteQueryOnUser<T>(TableQuery<T> query) where T : User, new()
@@ -85,43 +80,48 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return Task.Factory.StartNew(() => usersTable.ExecuteQuery(query));
         }
 
-        public Task<IEnumerable<UserNameIndex>> ExecuteQueryOnUserNamesIndex(TableQuery<UserNameIndex> query)
+        public async Task<UserEmailIndex> RetrieveUserEmailsIndexAsync(UserEmailIndex entity)
         {
-            return Task.Factory.StartNew(() => userNamesIndexTable.ExecuteQuery(query));
+            return await RetrieveAsync(userEmailsIndexTable, entity);
         }
 
-        public Task<IEnumerable<UserExternalLoginIndex>> ExecuteQueryOnUserExternalLoginsIndex(TableQuery<UserExternalLoginIndex> query)
+        public async Task<UserNameIndex> RetrieveUserNamesIndexAsync(UserNameIndex entity)
         {
-            return Task.Factory.StartNew(() => userExternalLoginsIndexTable.ExecuteQuery(query));
+            return await RetrieveAsync(userNamesIndexTable, entity);
         }
 
         public async Task<UserExternalLoginIndex> RetrieveUserExternalLoginIndexAsync(UserExternalLoginIndex entity)
         {
-            var retrieveOperation = TableOperation.Retrieve<UserExternalLoginIndex>(entity.PartitionKey, entity.RowKey);
-            var result = await userExternalLoginsIndexTable.ExecuteAsync(retrieveOperation);
-            return (UserExternalLoginIndex)result.Result;
+            return await RetrieveAsync(userExternalLoginsIndexTable, entity);
         }
 
-        private Task<TableResult> Insert(CloudTable table, ITableEntity entity)
+        private async Task<T> RetrieveAsync<T>(CloudTable table, T entity) where T : ITableEntity
+        {
+            var retrieveOperation = TableOperation.Retrieve<T>(entity.PartitionKey, entity.RowKey);
+            var result = await table.ExecuteAsync(retrieveOperation);
+            return (T)result.Result;
+        }
+
+        private Task<TableResult> InsertAsync(CloudTable table, ITableEntity entity)
         {
             var insertOperation = TableOperation.Insert(entity);
             return table.ExecuteAsync(insertOperation);
         }
 
-        private Task<TableResult> InsertOrReplace(CloudTable table, ITableEntity entity)
+        private Task<TableResult> InsertOrReplaceAsync(CloudTable table, ITableEntity entity)
         {
             var insertOrReplaceOperation = TableOperation.InsertOrReplace(entity);
             return table.ExecuteAsync(insertOrReplaceOperation);
         }
 
-        private Task<TableResult> Delete(CloudTable table, ITableEntity entity)
+        private Task<TableResult> DeleteAsync(CloudTable table, ITableEntity entity)
         {
             entity.ETag = "*";
             var deleteOperation = TableOperation.Delete(entity);
             return table.ExecuteAsync(deleteOperation);
         }
 
-        private Task<TableResult> Replace(CloudTable table, ITableEntity entity)
+        private Task<TableResult> ReplaceAsync(CloudTable table, ITableEntity entity)
         {
             entity.ETag = "*";
             var replaceOperation = TableOperation.Replace(entity);
