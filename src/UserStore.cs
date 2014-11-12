@@ -31,7 +31,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
         private async Task CreateUserNameIndex(T user)
         {
-            var userNameIndex = new UserNameIndex(user.UserName.Base64Encode(), user.Id);
+            var userNameIndex = new UserNameIndex(user.UserName, user.Id);
 
             try
             {
@@ -51,7 +51,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
         private async Task CreateEmailIndex(T user)
         {
-            var emailIndex = new UserEmailIndex(user.Email.Base64Encode(), user.Id);
+            var emailIndex = new UserEmailIndex(user.Email, user.Id);
 
             try
             {
@@ -208,9 +208,9 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 
         private async Task RemoveIndices(T user)
         {
-            var userNameIndex = new UserNameIndex(user.UserName.Base64Encode(), user.Id);
+            var userNameIndex = new UserNameIndex(user.UserName, user.Id);
 
-            var emailIndex = new UserEmailIndex(user.Email.Base64Encode(), user.Id);
+            var emailIndex = new UserEmailIndex(user.Email, user.Id);
 
             var t1 = identityTables.DeleteUserNamesIndexTableEntity(userNameIndex);
             var t2 = identityTables.DeleteUserEmailsIndexTableEntity(emailIndex);
