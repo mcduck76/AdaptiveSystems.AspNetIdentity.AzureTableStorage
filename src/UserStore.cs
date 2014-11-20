@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Configuration;
+using System.Linq;
 using System.Threading.Tasks;
 using AdaptiveSystems.AspNetIdentity.AzureTableStorage.Exceptions;
 using log4net;
@@ -10,8 +11,8 @@ using NExtensions;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
-    public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IUserLoginStore<T> 
-                        where T : User, new()
+    public class UserStore<T> : IUserStore<T>, IUserPasswordStore<T>, IUserEmailStore<T>, IUserLockoutStore<T, string>, IUserLoginStore<T>, IUserRoleStore<T> 
+        where T : User, new()
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(UserStore<>));
         private readonly IdentityTables _identityTables;
@@ -328,5 +329,39 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             }
         }
 
+        public Task AddToRoleAsync(T user, string roleName)
+        {
+            user.ThrowIfNull("user");
+            roleName.ThrowIfNullOrEmpty("roleName");
+
+            user.AddToRole(roleName);
+
+            return Task.FromResult(0);
+        }
+
+        public Task RemoveFromRoleAsync(T user, string roleName)
+        {
+            user.ThrowIfNull("user");
+            roleName.ThrowIfNullOrEmpty("roleName");
+
+            user.RemoveFromRole(roleName);
+
+            return Task.FromResult(0);
+        }
+
+        public Task<IList<string>> GetRolesAsync(T user)
+        {
+            user.ThrowIfNull("user");
+
+            return Task.FromResult((IList<string>)user.Roles.SplitByComma().ToList());
+        }
+
+        public Task<bool> IsInRoleAsync(T user, string roleName)
+        {
+            user.ThrowIfNull("user");
+            roleName.ThrowIfNullOrEmpty("roleName");
+
+            return Task.FromResult(user.IsInRole(roleName));
+        }
     }
 }

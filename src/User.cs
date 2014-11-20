@@ -21,7 +21,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public bool EmailConfirmed { get; set; }
         public string PasswordHash { get; set; }
         public string SecurityStamp { get; set; }
-        public string[] Roles { get; set; }
+        public string Roles { get; set; }
         public DateTime? LockoutEndDate { get; set; }
         public int AccessFailedCount { get; set; }
         public bool LockoutEnabled { get; set; }
@@ -64,9 +64,26 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             SetExternalLogins(logins);
         }
 
-        public bool IsUserInRole(string role)
+        public bool IsInRole(string role)
         {
             return Roles != null && Roles.Contains(role);
+        }
+
+        public void AddToRole(string role)
+        {
+            if (!Roles.Contains(role))
+            {
+                Roles.Append(string.Format(",{0}", role));
+            }
+        }
+
+        public void RemoveFromRole(string role)
+        {
+            if (Roles.Contains(role))
+            {
+                var newroles = Roles.SplitByComma().ToList().Remove(role);
+                Roles = string.Join(",", newroles);
+            }
         }
 
         public void SetPartionAndRowKeys()
