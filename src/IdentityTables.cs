@@ -4,7 +4,8 @@ using Microsoft.WindowsAzure.Storage.Table;
 
 namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
 {
-    public class IdentityTables
+    public class IdentityTables<TUser>
+        where TUser : User
     {
         private readonly CloudTable _usersTable;
         private readonly CloudTable _userNamesIndexTable;
@@ -89,9 +90,9 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
             return await RetrieveAsync(_userExternalLoginsIndexTable, entity);
         }
 
-        public async Task<User> RetrieveUserAsync(string userId)
+        public async Task<TUser> RetrieveUserAsync(string userId)
         {
-            return await RetrieveAsync<User>(_usersTable, userId, userId);
+            return await RetrieveAsync<TUser>(_usersTable, userId, userId);
         }
 
         private async Task<T> RetrieveAsync<T>(CloudTable table, T entity) where T : ITableEntity
