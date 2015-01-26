@@ -13,6 +13,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         public User()
         {
             Id = Guid.NewGuid().ToString();
+            Roles = string.Empty;
         }
 
         public string Id { get; set; }

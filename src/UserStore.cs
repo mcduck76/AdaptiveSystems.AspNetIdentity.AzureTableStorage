@@ -15,14 +15,14 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         where T : User, new()
     {
         private readonly ILog _log = LogManager.GetLogger(typeof(UserStore<>));
-        private readonly IdentityTables _identityTables;
+        private readonly IdentityTables<T> _identityTables;
 
         public UserStore(string connectionString) : this(CloudStorageAccount.Parse(connectionString)) { }
         public UserStore(CloudStorageAccount storageAccount) : this(storageAccount, true) { }
         public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists) : this(storageAccount, createIfNotExists, "users", "userNamesIndex", "userEmailsIndex", "userExternalLoginsIndex") { }
         public UserStore(CloudStorageAccount storageAccount, bool createIfNotExists, string usersTableName, string userNamesIndexTableName, string userEmailsIndexTableName, string userExternalLoginsIndexTableName)
         {
-            _identityTables = new IdentityTables(storageAccount, createIfNotExists, usersTableName, userNamesIndexTableName, userEmailsIndexTableName, userExternalLoginsIndexTableName);
+            _identityTables = new IdentityTables<T>(storageAccount, createIfNotExists, usersTableName, userNamesIndexTableName, userEmailsIndexTableName, userExternalLoginsIndexTableName);
         }
 
         public static UserStore<T> Create()
