@@ -74,7 +74,7 @@ namespace AdaptiveSystems.AspNetIdentity.AzureTableStorage
         {
             if (!Roles.Contains(role))
             {
-                Roles.Append(string.Format(",{0}", role));
+                Roles = Roles.Append(string.Format(",{0}", role));
             }
         }
 
